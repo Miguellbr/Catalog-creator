@@ -1,8 +1,8 @@
 import { extractLinks, clean } from "./html.js";
 
-const CUSA = /\\bCUSA\\d{5}\\b/i;
-const VERSION = /(?:update\\s*)?(?:v(?:ersion)?\\s*)?(\\d+(?:\\.\\d+){0,3})/i;
-const REGION = /(?:-|\\(|\\[|\\s)(EUR|USA|US|JPN|JAP|ASIA|CHN|KOR|UK|RUS)(?:\\b|\\)|\\])/i;
+const CUSA = /\bCUSA\d{5}\b/i;
+const VERSION = /(?:update\s*)?(?:v(?:ersion)?\s*)?(\d+(?:\.\d+){0,3})/i;
+const REGION = /(?:-|\(|\[|\s)(EUR|USA|US|JPN|JAP|ASIA|CHN|KOR|UK|RUS)(?:\b|\)|\])/i;
 
 export function parseGamePage(page) {
   const html = page?.html ?? "";
@@ -22,7 +22,7 @@ export function parseGamePage(page) {
 
 function splitBlocks(html) {
   const positions = [];
-  const re = /\\bCUSA\\d{5}\\b/gi;
+  const re = /\bCUSA\d{5}\b/gi;
   let m;
   while ((m = re.exec(html))) positions.push(m.index);
   return positions.map((start, i) => html.slice(start, positions[i + 1] ?? html.length));
@@ -44,11 +44,11 @@ function parseBlock(block, baseUrl, position) {
     const label = (link.text + " " + link.title).trim();
     const lower = label.toLowerCase();
 
-    if (/\\bdlc\\b|downloadable content/.test(lower)) {
+    if (/\bdlc\b|downloadable content/.test(lower)) {
       dlc.push(link);
-    } else if (/\\bupdate\\b|\\bpatch\\b|\\bfix\\b/.test(lower)) {
+    } else if (/\bupdate\b|\bpatch\b|\bfix\b/.test(lower)) {
       updates.push({ ...link, version: getVersion(label) || version });
-    } else if (/\\bgame\\b|\\bfull game\\b|\\bbase game\\b/.test(lower)) {
+    } else if (/\bgame\b|\bfull game\b|\bbase game\b/.test(lower)) {
       game.push(link);
     }
   }
@@ -56,7 +56,7 @@ function parseBlock(block, baseUrl, position) {
   return {
     cusa: cusa.toUpperCase(),
     region: normalizeRegion(regionMatch?.[1]),
-    mirror: /\\bmirror\\b/i.test(text),
+    mirror: /\bmirror\b/i.test(text),
     version,
     game,
     updates,
@@ -72,9 +72,9 @@ function parseLoose(html, text, baseUrl) {
   for (const link of links) {
     const label = (link.text + " " + link.title).trim();
     const lower = label.toLowerCase();
-    if (/\\bdlc\\b/.test(lower)) dlc.push(link);
-    else if (/\\bupdate\\b|\\bpatch\\b|\\bfix\\b/.test(lower)) updates.push({ ...link, version: getVersion(label) });
-    else if (/\\bgame\\b|\\bfull game\\b|\\bbase game\\b/.test(lower)) game.push(link);
+    if (/\bdlc\b/.test(lower)) dlc.push(link);
+    else if (/\bupdate\b|\bpatch\b|\bfix\b/.test(lower)) updates.push({ ...link, version: getVersion(label) });
+    else if (/\bgame\b|\bfull game\b|\bbase game\b/.test(lower)) game.push(link);
   }
 
   if (!game.length && !updates.length && !dlc.length) return null;
@@ -82,7 +82,7 @@ function parseLoose(html, text, baseUrl) {
   return {
     cusa: (text.match(CUSA) || [null])[0]?.toUpperCase() ?? null,
     region: normalizeRegion((text.match(REGION) || [null, null])[1]),
-    mirror: /\\bmirror\\b/i.test(text),
+    mirror: /\bmirror\b/i.test(text),
     version: getVersion(text),
     game,
     updates,
@@ -103,7 +103,7 @@ function normalizeRegion(value) {
 }
 
 function inferTitle(title, versions) {
-  const value = String(title || "").replace(/\\s+/g, " ").trim();
-  if (value) return value.replace(/\\s*[|–-].*$/, "").trim();
+  const value = String(title || "").replace(/\s+/g, " ").trim();
+  if (value) return value.replace(/\s*[|–-].*$/, "").trim();
   return versions[0]?.cusa || "Unknown game";
 }
