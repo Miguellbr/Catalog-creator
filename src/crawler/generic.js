@@ -30,9 +30,9 @@ export function createGenericSource(options = {}) {
         }
 
         const common = [
-          source.baseUrl.replace(/\\/$/, "") + "/?s={query}",
-          source.baseUrl.replace(/\\/$/, "") + "/search/{query}/",
-          source.baseUrl.replace(/\\/$/, "") + "/?search={query}"
+          source.baseUrl.replace(/\/$/, "") + "/?s={query}",
+          source.baseUrl.replace(/\/$/, "") + "/search/{query}/",
+          source.baseUrl.replace(/\/$/, "") + "/?search={query}"
         ];
 
         for (const template of common) {
@@ -47,7 +47,7 @@ export function createGenericSource(options = {}) {
     isIndexPage(page) {
       const text = page?.text || "";
       const links = extractLinks(page?.html || "", page?.url);
-      if (/\\bCUSA\\d{5}\\b/i.test(text)) return false;
+      if (/\bCUSA\d{5}\b/i.test(text)) return false;
       return isListing(page) || links.some(link => scoreLink(link, "") >= 4);
     },
 
@@ -63,7 +63,7 @@ export async function navigateToGame(page, game, maxDepth = 3) {
   let current = page;
 
   for (let depth = 0; depth < maxDepth; depth++) {
-    if (/\\bCUSA\\d{5}\\b/i.test(current.text || "")) return current;
+    if (/\bCUSA\d{5}\b/i.test(current.text || "")) return current;
 
     const links = extractLinks(current.html || "", current.url)
       .map(link => ({ ...link, score: scoreLink(link, game) }))
@@ -87,7 +87,7 @@ export async function navigateToGame(page, game, maxDepth = 3) {
     current = next;
   }
 
-  return /\\bCUSA\\d{5}\\b/i.test(current.text || "") ? current : null;
+  return /\bCUSA\d{5}\b/i.test(current.text || "") ? current : null;
 }
 
 export function scoreLink(link, game) {
@@ -98,12 +98,12 @@ export function scoreLink(link, game) {
   let score = 0;
   if (wanted && target.includes(wanted)) score += 10;
 
-  for (const word of wanted.split(/\\s+/).filter(w => w.length > 2)) {
+  for (const word of wanted.split(/\s+/).filter(w => w.length > 2)) {
     if (target.includes(word)) score += 2;
   }
 
-  if (/\\b(game|download|details|read more|view)\\b/.test(target)) score += 2;
-  if (/\\b(tag|category|search|author|comment)\\b/.test(link.href.toLowerCase())) score -= 2;
+  if (/\b(game|download|details|read more|view)\b/.test(target)) score += 2;
+  if (/\b(tag|category|search|author|comment)\b/.test(link.href.toLowerCase())) score -= 2;
 
   return score;
 }
@@ -111,14 +111,37 @@ export function scoreLink(link, game) {
 function isListing(page) {
   const url = String(page?.url || "").toLowerCase();
   const title = String(page?.title || "").toLowerCase();
-  return /\\b(tag|category|search|archive|page)\\b/.test(url) ||
-    /\\b(search results|category|tag)\\b/.test(title);
+  return /\b(tag|category|search|archive|page)\b/.test(url) ||
+    /\b(search results|category|tag)\b/.test(title);
 }
 
 async function tryFetch(template, query) {
   try {
-    return await fetchPage(template.replace("{query}", encodeURIComponent(query)));
+    return await fetchPage(expandTemplate(template, query));
   } catch {
     return null;
   }
+}
+
+export function expandTemplate(template, game) {
+  const value = String(game ?? "").trim();
+  const encoded = encodeURIComponent(value);
+  const slug = slugify(value);
+
+  return String(template)
+    .replaceAll("{GAME_SLUG}", slug)
+    .replaceAll("{GAME}", encoded)
+    .replaceAll("{QUERY}", encoded)
+    .replaceAll("{query}", encoded);
+}
+
+export function slugify(value) {
+  return String(value ?? "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
 }
