@@ -1,38 +1,84 @@
 # Catalog Creator
 
-Structural catalog builder and page parser.
+Catalog Creator is a generic structural crawler and catalog parser.
 
-## Architecture
+## The important change
 
-The project separates:
+You configure the **website**, not every game.
 
-- crawling/navigation
-- page classification
-- source adapters
-- structured parsing
-- version normalization/comparison
-- catalog output
+You do NOT put individual game URLs, CUSA links, or update links in the configuration. The same source configuration can receive any game name.
 
-## Source adapter
+## How it works
 
-Each source should implement the generic interface in `src/sources/adapter.js`.
-
-The adapter is intentionally isolated from the core parser so new sources can be added without changing the rest of the system.
-
-## Reserved integration point
-
-```js
-// TODO: SOURCE-SPECIFIC INTEGRATION
-// Add source-specific navigation/request handling here.
-//
-// Keep the rest of the project independent from this implementation.
+```
+Game name
+  ↓
+Site search
+  ↓
+Search/tag/category page?
+  ↓ yes
+Find matching game card/title
+  ↓
+Follow link
+  ↓
+Individual game page
+  ↓
+Find CUSA + region blocks
+  ↓
+Separate Game / Update / DLC
+  ↓
+Find mirrors
+  ↓
+Compare versions
+  ↓
+Catalog JSON
 ```
 
-This placeholder is intentionally left for a source-specific implementation to be added later.
+## What you configure
 
-## Development
+Open `src/config/source.js`.
+
+Normally you only change:
+
+```js
+name: "Nome do site",
+baseUrl: "https://example.com"
+```
+
+The crawler tries to discover a GET search form automatically. If that fails, add a site-wide search pattern:
+
+```js
+searchTemplates: ["https://example.com/?s={query}"]
+```
+
+`{query}` is replaced automatically with the game name.
+
+## Run
 
 ```bash
 npm install
+npm test
+npm start -- "Risk of Rain 2"
+```
+
+Several games:
+
+```bash
+npm start -- "Risk of Rain 2" "Minecraft" "God of War"
+```
+
+## Parser
+
+The generic parser attempts to recognize CUSA blocks, regions, Game, Update/Patch/Fix, DLC, mirrors and numeric versions. Multiple CUSA blocks stay separate and multiple updates stay separate.
+
+Version comparison remains in `src/parser/version.js` and `src/catalog/normalize.js`.
+
+## Limitation
+
+This is a structural crawler/parser. It does not implement automation for bypassing protected links, shorteners, advertisements, access controls, or similar protections.
+
+## Tests
+
+```bash
 npm test
 ```
