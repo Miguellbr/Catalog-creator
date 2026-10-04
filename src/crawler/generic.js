@@ -92,8 +92,14 @@ export async function navigateToGame(page, game, maxDepth = 3, platform = null) 
     debug("depth", depth, "candidate links:", links.slice(0, 5).map(link => ({ text: link.text, href: link.href, score: link.score })));
     if (!links.length) return null;
 
+    const relevantLinks = wantedGameLinks(links, game);
+    if (!relevantLinks.length) {
+      debug("no game-specific candidates at depth", depth);
+      return null;
+    }
+
     let next = null;
-    for (const link of links.slice(0, 5)) {
+    for (const link of relevantLinks.slice(0, 5)) {
       try {
         const candidate = await fetchPage(link.href);
         if (candidate.html) {
@@ -142,6 +148,17 @@ export function scoreLink(link, game, platform = null) {
   }
 
   return score;
+}
+
+function wantedGameLinks(links, game) {
+  const wanted = String(game || "").toLowerCase().trim();
+  if (!wanted) return links;
+
+  const words = wanted.split(/\\s+/).filter(word => word.length > 2);
+  return links.filter(link => {
+    const target = (link.text + " " + link.title + " " + link.href).toLowerCase();
+    return target.includes(wanted) || words.every(word => target.includes(word));
+  });
 }
 
 function isListing(page) {
