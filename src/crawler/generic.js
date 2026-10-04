@@ -12,6 +12,7 @@ export function createGenericSource(options = {}) {
     name: options.name || "Generic source",
     baseUrl: options.baseUrl || "",
     searchTemplates: options.searchTemplates || [],
+    platform: options.platform || null,
     maxNavigationDepth: options.maxNavigationDepth || 3,
 
     async search(query) {
@@ -65,27 +66,29 @@ export function createGenericSource(options = {}) {
     },
 
     async findGamePage(page, game) {
-      return navigateToGame(page, game, source.maxNavigationDepth);
+      return navigateToGame(page, game, source.maxNavigationDepth, source.platform);
     }
   };
 
   return source;
 }
 
-export async function navigateToGame(page, game, maxDepth = 3) {
+export async function navigateToGame(page, game, maxDepth = 3, platform = null) {
   let current = page;
+  const visited = new Set();
 
   for (let depth = 0; depth < maxDepth; depth++) {
-    if (/\bCUSA\d{5}\b/i.test(current.text || "")) {
+    if (/\bCUSA\d{5}\b/i.test(current.text || "") && isPlatformMatch(current, platform)) {
       debug("CUSA found at depth", depth, current.url);
       return current;
     }
 
     const links = extractLinks(current.html || "", current.url)
-      .map(link => ({ ...link, score: scoreLink(link, game) }))
-      .filter(link => link.score > 0)
+      .map(link => ({ ...link, score: scoreLink(link, game, platform) }))
+      .filter(link => link.score > 0 && !visited.has(link.href))
       .sort((a, b) => b.score - a.score);
 
+    visited.add(current.url);
     debug("depth", depth, "candidate links:", links.slice(0, 5).map(link => ({ text: link.text, href: link.href, score: link.score })));
     if (!links.length) return null;
 
@@ -108,10 +111,10 @@ export async function navigateToGame(page, game, maxDepth = 3) {
     current = next;
   }
 
-  return /\bCUSA\d{5}\b/i.test(current.text || "") ? current : null;
+  return /\bCUSA\d{5}\b/i.test(current.text || "") && isPlatformMatch(current, platform) ? current : null;
 }
 
-export function scoreLink(link, game) {
+export function scoreLink(link, game, platform = null) {
   const target = (link.text + " " + link.title + " " + link.href).toLowerCase();
   const wanted = String(game || "").toLowerCase().trim();
   if (!target) return 0;
@@ -124,7 +127,14 @@ export function scoreLink(link, game) {
   }
 
   if (/\b(game|download|details|read more|view)\b/.test(target)) score += 2;
-  if (/\b(tag|category|search|author|comment)\b/.test(link.href.toLowerCase())) score -= 2;
+  if (/\b(tag|category|search|author|comment|login)\b/.test(link.href.toLowerCase())) score -= 6;
+  if (/\b(list-all|list-game|archive)\b/.test(target)) score -= 8;
+
+  if (platform) {
+    const wantedPlatform = String(platform).toLowerCase();
+    if (target.includes(wantedPlatform)) score += 8;
+    if (/\bps5\b|\bps3\b|\bps2\b|\bps1\b|\bpsvita\b/.test(target) && !target.includes(wantedPlatform)) score -= 12;
+  }
 
   return score;
 }
@@ -156,6 +166,16 @@ export function expandTemplate(template, game) {
     .replaceAll("{GAME}", encoded)
     .replaceAll("{QUERY}", encoded)
     .replaceAll("{query}", encoded);
+}
+
+function isPlatformMatch(page, platform) {
+  if (!platform) return true;
+  const wanted = String(platform).toLowerCase();
+  const target = [page?.url || "", page?.title || "", page?.text || ""].join(" ").toLowerCase();
+  if (wanted === "ps4" && /\bps5\b/.test(target) && !/\bps4\b/.test(target)) return false;
+  if (wanted === "ps4" && /\bps3\b/.test(target) && !/\bps4\b/.test(target)) return false;
+  if (wanted === "ps4" && /\bps2\b/.test(target) && !/\bps4\b/.test(target)) return false;
+  return target.includes(wanted) || /\bCUSA\d{5}\b/i.test(target);
 }
 
 export function slugify(value) {
