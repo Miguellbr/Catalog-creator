@@ -24,3 +24,24 @@ test("separates CUSA blocks and categories", () => {
   assert.equal(game.versions[0].dlc.length, 1);
   assert.equal(game.versions[1].cusa, "CUSA16153");
 });
+
+
+test("ignores navigation-only CUSA blocks", () => {
+  const html = `
+  <h2>CUSA16209 - EUR</h2><a href="/game">Game</a><a href="/u118">Update 1.18</a>
+  <footer><span>CUSA02429 USA</span>
+  <a href="/guide">Guide Download Game</a>
+  <a href="/ps4">Update List All Game PS4</a>
+  <a href="/ps5">Update List All Game PS5</a>
+  </footer>
+  `;
+
+  const game = parseGamePage({
+    url: "https://example.test/game",
+    html,
+    text: "CUSA16209 EUR Game Update 1.18 CUSA02429 USA Guide Download Game Update List All Game PS4"
+  });
+
+  assert.equal(game.versions.length, 1);
+  assert.equal(game.versions[0].cusa, "CUSA16209");
+});
