@@ -3,7 +3,6 @@ import { parseGamePage } from "../parser/heuristic.js";
 
 export function createSourceAdapter(options = {}) {
   const source = createGenericSource(options);
-
   return {
     name: source.name,
     search: query => source.search(query),
