@@ -1,6 +1,5 @@
-# One game per line.
-# Example input list.
+# Teste dos três padrões do SuperPSX
 
+Totally Accurate Battle Simulator
 Risk of Rain 2
-Minecraft
-God of War
+Goat Simulator 3
