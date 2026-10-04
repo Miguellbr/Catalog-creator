@@ -9,6 +9,7 @@ export async function fetchPage(url, options = {}) {
 
   if (!response.ok) throw new Error(`HTTP_${response.status}: ${url}`);
 
+  const contentType = response.headers.get("content-type") || "";
   const html = await response.text();
 
   if (process.env.CATALOG_DEBUG === "1") {
@@ -40,6 +41,7 @@ export async function fetchPage(url, options = {}) {
 
   return {
     url: response.url,
+    contentType,
     html,
     title: extractTitle(html),
     text: htmlToText(html)
