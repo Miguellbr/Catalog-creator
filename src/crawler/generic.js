@@ -128,12 +128,17 @@ export function scoreLink(link, game, platform = null) {
 
   if (/\b(game|download|details|read more|view)\b/.test(target)) score += 2;
   if (/\b(tag|category|search|author|comment|login)\b/.test(link.href.toLowerCase())) score -= 6;
+  if (/^https?:\/\/(www\.)?x\.com\//i.test(link.href)) score -= 20;
   if (/\b(list-all|list-game|archive)\b/.test(target)) score -= 8;
 
   if (platform) {
     const wantedPlatform = String(platform).toLowerCase();
     if (target.includes(wantedPlatform)) score += 8;
     if (/\bps5\b|\bps3\b|\bps2\b|\bps1\b|\bpsvita\b/.test(target) && !target.includes(wantedPlatform)) score -= 12;
+    if (platform === "ps4") {
+      const path = new URL(link.href).pathname.toLowerCase();
+      if (/\bps5\b|\bps3\b|\bps2\b|\bps1\b|\bpsvita\b/.test(path) && !/\bps4\b/.test(path)) score -= 30;
+    }
   }
 
   return score;
@@ -170,12 +175,21 @@ export function expandTemplate(template, game) {
 
 function isPlatformMatch(page, platform) {
   if (!platform) return true;
+
   const wanted = String(platform).toLowerCase();
-  const target = [page?.url || "", page?.title || "", page?.text || ""].join(" ").toLowerCase();
-  if (wanted === "ps4" && /\bps5\b/.test(target) && !/\bps4\b/.test(target)) return false;
-  if (wanted === "ps4" && /\bps3\b/.test(target) && !/\bps4\b/.test(target)) return false;
-  if (wanted === "ps4" && /\bps2\b/.test(target) && !/\bps4\b/.test(target)) return false;
-  return target.includes(wanted) || /\bCUSA\d{5}\b/i.test(target);
+  const url = String(page?.url || "").toLowerCase();
+  const title = String(page?.title || "").toLowerCase();
+  const text = String(page?.text || "").toLowerCase();
+
+  if (wanted === "ps4") {
+    if (/\bps5\b|\bps3\b|\bps2\b|\bps1\b|\bpsvita\b/.test(url) && !/\bps4\b/.test(url)) {
+      return false;
+    }
+    if (/\bps4\b/.test(url)) return true;
+  }
+
+  const wantedRe = new RegExp("\\b" + String(wanted).replace(/[.*+?^$()|[\]\\]/g, "\\$&") + "\\b", "i");
+  return wantedRe.test(url) || wantedRe.test(title) || wantedRe.test(text);
 }
 
 export function slugify(value) {
