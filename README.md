@@ -2,32 +2,76 @@
 
 Catalog Creator is a generic structural crawler and catalog parser.
 
-## The important change
+## The important idea
 
 You configure the **website**, not every game.
 
-You do NOT put individual game URLs, CUSA links, or update links in the configuration. The same source configuration can receive any game name.
+A source can use reusable template variables:
+
+- `{GAME_SLUG}` → converts a game name to a URL slug
+- `{GAME}` → URL-encoded game name
+- `{QUERY}` → URL-encoded game name
+
+Example:
+
+```
+https://example.com/tag/{GAME_SLUG}/
+```
+
+Input:
+
+```
+Risk of Rain 2
+```
+
+becomes:
+
+```
+https://example.com/tag/risk-of-rain-2/
+```
+
+No individual game URL needs to be stored in the source configuration.
+
+## Batch input
+
+You can put one game name per line in a text file:
+
+```text
+Risk of Rain 2
+Minecraft
+God of War
+```
+
+Then run:
+
+```bash
+npm install
+npm test
+npm start -- --file games.txt
+```
+
+The same source configuration is reused for every name in the file.
+
+You can also pass names directly:
+
+```bash
+npm start -- "Risk of Rain 2" "Minecraft" "God of War"
+```
 
 ## How it works
 
 ```
 Game name
   ↓
-Site search
+Template expansion
   ↓
-Search/tag/category page?
-  ↓ yes
-Find matching game card/title
+Site search/tag/category page
   ↓
-Follow link
-  ↓
-Individual game page
+Find matching game page
   ↓
 Find CUSA + region blocks
   ↓
 Separate Game / Update / DLC
-  ↓
-Find mirrors
   ↓
 Compare versions
   ↓
@@ -38,34 +82,20 @@ Catalog JSON
 
 Open `src/config/source.js`.
 
-Normally you only change:
+Normally you describe the **site structure**:
 
 ```js
-name: "Nome do site",
-baseUrl: "https://example.com"
+export const sourceConfig = {
+  name: "My Source",
+  baseUrl: "https://example.com",
+  searchTemplates: [
+    "https://example.com/tag/{GAME_SLUG}/"
+  ],
+  maxNavigationDepth: 3
+};
 ```
 
-The crawler tries to discover a GET search form automatically. If that fails, add a site-wide search pattern:
-
-```js
-searchTemplates: ["https://example.com/?s={query}"]
-```
-
-`{query}` is replaced automatically with the game name.
-
-## Run
-
-```bash
-npm install
-npm test
-npm start -- "Risk of Rain 2"
-```
-
-Several games:
-
-```bash
-npm start -- "Risk of Rain 2" "Minecraft" "God of War"
-```
+The crawler can also try to discover a GET search form automatically when no template works.
 
 ## Parser
 
