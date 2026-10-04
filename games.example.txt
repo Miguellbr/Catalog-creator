@@ -1,0 +1,6 @@
+# One game per line.
+# Example input list.
+
+Risk of Rain 2
+Minecraft
+God of War
