@@ -11,6 +11,7 @@
 export const sourceConfig = {
   name: "My Source",
   baseUrl: "https://dlpsgame.com",
+  platform: "PS4",
 
   // Example:
   // searchTemplates: ["https://example.com/tag/{GAME_SLUG}/"],
