@@ -1,5 +1,5 @@
 import { fetchPage } from "../http/fetch.js";
-import { extractForms, extractLinks } from "../parser/html.js";
+import { extractForms, extractLinks, toAbsoluteUrl } from "../parser/html.js";
 
 const DEBUG = process.env.CATALOG_DEBUG === "1";
 
@@ -14,6 +14,7 @@ export function createGenericSource(options = {}) {
     searchTemplates: options.searchTemplates || [],
     platform: options.platform || null,
     maxNavigationDepth: options.maxNavigationDepth || 3,
+    downloadButtonImage: options.downloadButtonImage || null,
 
     async search(query) {
       debug("query:", query);
@@ -67,10 +68,64 @@ export function createGenericSource(options = {}) {
 
     async findGamePage(page, game) {
       return navigateToGame(page, game, source.maxNavigationDepth, source.platform);
+    },
+
+    findDownloadLinks(page) {
+      return extractDownloadButtonLinks(
+        page?.html || "",
+        page?.url || "",
+        source.downloadButtonImage
+      );
     }
   };
 
   return source;
+}
+
+export function extractDownloadButtonLinks(html = "", baseUrl = "", imagePattern = null) {
+  if (!imagePattern) return [];
+
+  const pattern = String(imagePattern).trim();
+  if (!pattern) return [];
+
+  const escaped = escapeRegExp(pattern);
+  const imageRe = new RegExp(escaped, "i");
+  const results = [];
+  const seen = new Set();
+
+  const anchorRe = /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
+  let match;
+
+  while ((match = anchorRe.exec(String(html)))) {
+    const attrs = match[1] || "";
+    const body = match[2] || "";
+    if (!imageRe.test(body)) continue;
+
+    const href = readHref(attrs);
+    const url = toAbsoluteUrl(href, baseUrl);
+    if (!url || seen.has(url)) continue;
+
+    seen.add(url);
+    results.push({
+      url,
+      source: pattern
+    });
+  }
+
+  if (DEBUG) {
+    debug("download-button matches:", results);
+  }
+
+  return results;
+}
+
+function readHref(attrs = "") {
+  const match = String(attrs).match(/\bhref\s*=\s*["']([^"']+)["']/i);
+  return match ? match[1] : "";
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^$()|[\]\\]/g, "\\$&");
 }
 
 export async function navigateToGame(page, game, maxDepth = 3, platform = null) {
