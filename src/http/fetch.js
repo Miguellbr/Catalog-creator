@@ -10,6 +10,17 @@ export async function fetchPage(url, options = {}) {
   if (!response.ok) throw new Error(`HTTP_${response.status}: ${url}`);
 
   const html = await response.text();
+
+  if (process.env.CATALOG_DEBUG === "1") {
+    const lower = html.toLowerCase();
+    const markers = {
+      login: lower.includes("wp-login") || lower.includes("log in") || lower.includes("login"),
+      blocked: lower.includes("access denied") || lower.includes("forbidden") || lower.includes("cloudflare"),
+      gameTitle: lower.includes("god of war"),
+      cusa: /\\bCUSA\\d{5}\\b/i.test(html)
+    };
+    console.error("[http-debug]", response.status, response.url, "bytes:", html.length, markers);
+  }
   return {
     url: response.url,
     html,
