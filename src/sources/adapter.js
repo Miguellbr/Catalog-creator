@@ -8,6 +8,7 @@ export function createSourceAdapter(options = {}) {
     search: query => source.search(query),
     isIndexPage: page => source.isIndexPage(page),
     findGamePage: (page, game) => source.findGamePage(page, game),
+    findDownloadLinks: page => source.findDownloadLinks(page),
     parseGamePage: page => parseGamePage(page)
   };
 }
