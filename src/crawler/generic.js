@@ -18,15 +18,33 @@ export function createGenericSource(options = {}) {
 
     async search(query) {
       debug("query:", query);
+      let firstHtmlPage = null;
+
       for (const template of source.searchTemplates) {
         const url = expandTemplate(template, query);
         debug("template:", template, "=>", url);
         const page = await tryFetch(template, query);
-        if (page) {
-          debug("page found:", page.url, "title:", page.title, "html:", page.html.length);
+
+        if (!page) {
+          debug("template failed:", url);
+          continue;
+        }
+
+        debug("page found:", page.url, "title:", page.title, "html:", page.html.length);
+
+        if (!firstHtmlPage) firstHtmlPage = page;
+
+        if (/\\bCUSA\\d{5}\\b/i.test(page.text || "")) {
+          debug("template accepted: CUSA found");
           return [page];
         }
-        debug("template failed:", url);
+
+        debug("template skipped: no CUSA, trying next template");
+      }
+
+      if (firstHtmlPage) {
+        debug("no template with CUSA; using first HTML page:", firstHtmlPage.url);
+        return [firstHtmlPage];
       }
 
       if (!source.baseUrl) return [];
