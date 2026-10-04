@@ -10,15 +10,17 @@
  */
 export const sourceConfig = {
   name: "My Source",
-  baseUrl: "https://dlpsgame.com",
+  baseUrl: "https://superpsx.com",
   platform: "PS4",
 
   // Example:
   // searchTemplates: ["https://example.com/tag/{GAME_SLUG}/"],
   searchTemplates: [
-
-    "https://dlpsgame.com/tag/{GAME_SLUG}/"
-  ],
+  "https://www.superpsx.com/{GAME_SLUG}-ps4-pkg/",
+  "https://www.superpsx.com/{GAME_SLUG}-ps4-fpkg/",
+  "https://www.superpsx.com/dll-{GAME_SLUG}ps4/",
+  "https://www.superpsx.com/term-{GAME_SLUG}ps4/"
+]
 
   maxNavigationDepth: 3
 };
