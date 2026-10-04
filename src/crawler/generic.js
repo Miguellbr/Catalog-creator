@@ -78,6 +78,9 @@ export async function navigateToGame(page, game, maxDepth = 3, platform = null) 
   const visited = new Set();
 
   for (let depth = 0; depth < maxDepth; depth++) {
+    const cusaMatches = [...new Set((current.html || "").match(/\bCUSA\d{5}\b/gi) || [])];
+    if (DEBUG) console.error("[cusa-debug]", current.url, "matches:", cusaMatches, "textHasCUSA:", /\bCUSA\d{5}\b/i.test(current.text || ""), "platformMatch:", isPlatformMatch(current, platform));
+
     if (/\bCUSA\d{5}\b/i.test(current.text || "") && isPlatformMatch(current, platform)) {
       debug("CUSA found at depth", depth, current.url);
       return current;
@@ -117,6 +120,8 @@ export async function navigateToGame(page, game, maxDepth = 3, platform = null) 
     current = next;
   }
 
+  const cusaMatches = [...new Set((current.html || "").match(/\bCUSA\d{5}\b/gi) || [])];
+  if (DEBUG) console.error("[cusa-debug]", current.url, "final matches:", cusaMatches, "textHasCUSA:", /\bCUSA\d{5}\b/i.test(current.text || ""), "platformMatch:", isPlatformMatch(current, platform));
   return /\bCUSA\d{5}\b/i.test(current.text || "") && isPlatformMatch(current, platform) ? current : null;
 }
 
