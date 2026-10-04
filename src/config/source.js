@@ -16,7 +16,7 @@ export const sourceConfig = {
   // searchTemplates: ["https://example.com/tag/{GAME_SLUG}/"],
   searchTemplates: [
 
-    https://dlpsgame.com/tag/{GAME_SLUG}/
+    "https://dlpsgame.com/tag/{GAME_SLUG}/"
   ],
 
   maxNavigationDepth: 3
