@@ -25,7 +25,7 @@ function splitBlocks(html) {
   const re = /\\bCUSA\\d{5}\\b/gi;
   let m;
   while ((m = re.exec(html))) positions.push(m.index);
-  return positions.map((start, i) => html.slice(Math.max(0, start - 700), positions[i + 1] ?? html.length));
+  return positions.map((start, i) => html.slice(start, positions[i + 1] ?? html.length));
 }
 
 function parseBlock(block, baseUrl, position) {
