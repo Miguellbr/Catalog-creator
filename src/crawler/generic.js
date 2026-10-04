@@ -97,6 +97,7 @@ export async function navigateToGame(page, game, maxDepth = 3, platform = null) 
     const links = extractLinks(current.html || "", current.url)
       .map(link => ({ ...link, score: scoreLink(link, game, platform) }))
       .filter(link => link.score > 0 && !visited.has(link.href))
+      .filter(link => !isLoginLink(link))
       .sort((a, b) => b.score - a.score);
 
     visited.add(current.url);
@@ -151,6 +152,14 @@ export async function navigateToGame(page, game, maxDepth = 3, platform = null) 
     : null;
 }
 
+function isLoginLink(link) {
+  const href = String(link?.href || "").toLowerCase();
+  const text = String(link?.text || "").toLowerCase();
+  return href.includes("/wp-login.php") ||
+    href.includes("wp-login") ||
+    /\b(log\s*in|login|sign\s*in)\b/i.test(text);
+}
+
 function debugPageWithoutCusa(page, game, depth) {
   const html = String(page?.html || "");
   const text = String(page?.text || "");
@@ -172,7 +181,7 @@ function debugPageWithoutCusa(page, game, depth) {
     .slice(0, 3);
 
   const identifiers = [...new Set(
-    text.match(/\b(?:CUSA|TITLE.?ID|TITLEID|NP[A-Z0-9_-]{4,}|UP[0-9]{5,})[A-Z0-9_-]*\b/gi) || []
+    text.match(/\b(?:CUSA|TITLE.?ID|TITLEID|NP[A-Z0-9_-]{4,}|UP[0-9]{5,}|SCUS[0-9]{5}|SCES[0-9]{5})[A-Z0-9_-]*\b/gi) || []
   )].slice(0, 20);
 
   debug("page-without-cusa", {
