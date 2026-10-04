@@ -2,7 +2,7 @@ import { decodeEntities } from "../http/fetch.js";
 
 export function extractLinks(html = "", baseUrl = "") {
   const links = [];
-  const re = /<a\\b([^>]*?)href\\s*=\\s*["']([^"']+)["']([^>]*)>([\\s\\S]*?)<\\/a>/gi;
+  const re = /<a\b([^>]*?)href\s*=\s*["']([^"']+)["']([^>]*)>([\s\S]*?)<\/a>/gi;
   let m;
   while ((m = re.exec(html))) {
     const attrs = `${m[1]} ${m[3]}`;
@@ -15,11 +15,11 @@ export function extractLinks(html = "", baseUrl = "") {
 
 export function extractForms(html = "", baseUrl = "") {
   const forms = [];
-  const re = /<form\\b([^>]*)>([\\s\\S]*?)<\\/form>/gi;
+  const re = /<form\b([^>]*)>([\s\S]*?)<\/form>/gi;
   let m;
   while ((m = re.exec(html))) {
     const attrs = m[1];
-    const input = m[2].match(/<input\\b([^>]*)>/i);
+    const input = m[2].match(/<input\b([^>]*)>/i);
     if (!input) continue;
     const name = readAttr(input[1], "name") || readAttr(input[1], "id");
     const type = (readAttr(input[1], "type") || "text").toLowerCase();
@@ -32,13 +32,13 @@ export function extractForms(html = "", baseUrl = "") {
 }
 
 export function readAttr(attrs = "", name) {
-  const re = new RegExp("\\b" + name + "\\s*=\\s*[\\\"']([^\\\"']*)[\\\"']", "i");
+  const re = new RegExp("\b" + name + "\s*=\s*[\\\"']([^\\\"']*)[\\\"']", "i");
   const m = String(attrs).match(re);
   return m ? decodeEntities(m[1]) : "";
 }
 
 export function clean(value = "") {
-  return decodeEntities(String(value).replace(/<[^>]+>/g, " ").replace(/\\s+/g, " ").trim());
+  return decodeEntities(String(value).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
 }
 
 export function toAbsoluteUrl(value, baseUrl) {
