@@ -34,7 +34,7 @@ export function createGenericSource(options = {}) {
 
         if (!firstHtmlPage) firstHtmlPage = page;
 
-        if (/\\bCUSA\\d{5}\\b/i.test(page.text || "")) {
+        if (/\bCUSA\d{5}\b/i.test(page.text || "")) {
           debug("template accepted: CUSA found");
           return [page];
         }
