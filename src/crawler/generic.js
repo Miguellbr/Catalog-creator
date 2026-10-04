@@ -79,12 +79,20 @@ export async function navigateToGame(page, game, maxDepth = 3, platform = null) 
 
   for (let depth = 0; depth < maxDepth; depth++) {
     const cusaMatches = [...new Set((current.html || "").match(/\bCUSA\d{5}\b/gi) || [])];
-    if (DEBUG) console.error("[cusa-debug]", current.url, "matches:", cusaMatches, "textHasCUSA:", /\bCUSA\d{5}\b/i.test(current.text || ""), "platformMatch:", isPlatformMatch(current, platform));
+    if (DEBUG) console.error(
+      "[cusa-debug]",
+      current.url,
+      "matches:", cusaMatches,
+      "textHasCUSA:", /\bCUSA\d{5}\b/i.test(current.text || ""),
+      "platformMatch:", isPlatformMatch(current, platform)
+    );
 
     if (/\bCUSA\d{5}\b/i.test(current.text || "") && isPlatformMatch(current, platform)) {
       debug("CUSA found at depth", depth, current.url);
       return current;
     }
+
+    if (DEBUG) debugPageWithoutCusa(current, game, depth);
 
     const links = extractLinks(current.html || "", current.url)
       .map(link => ({ ...link, score: scoreLink(link, game, platform) }))
@@ -92,7 +100,12 @@ export async function navigateToGame(page, game, maxDepth = 3, platform = null) 
       .sort((a, b) => b.score - a.score);
 
     visited.add(current.url);
-    debug("depth", depth, "candidate links:", links.slice(0, 5).map(link => ({ text: link.text, href: link.href, score: link.score })));
+    debug("depth", depth, "candidate links:", links.slice(0, 5).map(link => ({
+      text: link.text,
+      href: link.href,
+      score: link.score
+    })));
+
     if (!links.length) return null;
 
     const relevantLinks = wantedGameLinks(links, game);
@@ -116,13 +129,71 @@ export async function navigateToGame(page, game, maxDepth = 3, platform = null) 
       debug("no candidate page fetched at depth", depth);
       return null;
     }
+
     debug("following:", next.url, "title:", next.title);
     current = next;
   }
 
   const cusaMatches = [...new Set((current.html || "").match(/\bCUSA\d{5}\b/gi) || [])];
-  if (DEBUG) console.error("[cusa-debug]", current.url, "final matches:", cusaMatches, "textHasCUSA:", /\bCUSA\d{5}\b/i.test(current.text || ""), "platformMatch:", isPlatformMatch(current, platform));
-  return /\bCUSA\d{5}\b/i.test(current.text || "") && isPlatformMatch(current, platform) ? current : null;
+  if (DEBUG) {
+    console.error(
+      "[cusa-debug]",
+      current.url,
+      "final matches:", cusaMatches,
+      "textHasCUSA:", /\bCUSA\d{5}\b/i.test(current.text || ""),
+      "platformMatch:", isPlatformMatch(current, platform)
+    );
+    if (!cusaMatches.length) debugPageWithoutCusa(current, game, maxDepth);
+  }
+
+  return /\bCUSA\d{5}\b/i.test(current.text || "") && isPlatformMatch(current, platform)
+    ? current
+    : null;
+}
+
+function debugPageWithoutCusa(page, game, depth) {
+  const html = String(page?.html || "");
+  const text = String(page?.text || "");
+  const title = String(page?.title || "");
+
+  const links = extractLinks(html, page?.url);
+  const canonical = html.match(/<link[^>]+rel=["'][^"']*canonical[^"']*["'][^>]+href=["']([^"']+)["']/i)?.[1]
+    || html.match(/<link[^>]+href=["']([^"']+)["'][^>]+rel=["'][^"']*canonical[^"']*["']/i)?.[1]
+    || null;
+
+  const headings = [...html.matchAll(/<h[1-3]\b[^>]*>([\s\S]*?)<\/h[1-3]>/gi)]
+    .map(match => cleanDebugText(match[1]))
+    .filter(Boolean)
+    .slice(0, 8);
+
+  const gameMentions = [...text.matchAll(/.{0,100}god of war.{0,180}/gi)]
+    .map(match => cleanDebugText(match[0]))
+    .filter(Boolean)
+    .slice(0, 3);
+
+  const identifiers = [...new Set(
+    text.match(/\b(?:CUSA|TITLE.?ID|TITLEID|NP[A-Z0-9_-]{4,}|UP[0-9]{5,})[A-Z0-9_-]*\b/gi) || []
+  )].slice(0, 20);
+
+  debug("page-without-cusa", {
+    depth,
+    game,
+    url: page?.url,
+    title,
+    canonical,
+    headings,
+    links: links.length,
+    identifiers,
+    gameMentions
+  });
+}
+
+function cleanDebugText(value = "") {
+  return String(value)
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 500);
 }
 
 export function scoreLink(link, game, platform = null) {
@@ -159,7 +230,7 @@ function wantedGameLinks(links, game) {
   const wanted = String(game || "").toLowerCase().trim();
   if (!wanted) return links;
 
-  const words = wanted.split(/\\s+/).filter(word => word.length > 2);
+  const words = wanted.split(/\s+/).filter(word => word.length > 2);
   return links.filter(link => {
     const target = (link.text + " " + link.title + " " + link.href).toLowerCase();
     return target.includes(wanted) || words.every(word => target.includes(word));
