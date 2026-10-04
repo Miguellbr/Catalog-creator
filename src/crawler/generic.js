@@ -1,6 +1,12 @@
 import { fetchPage } from "../http/fetch.js";
 import { extractForms, extractLinks } from "../parser/html.js";
 
+const DEBUG = process.env.CATALOG_DEBUG === "1";
+
+function debug(...args) {
+  if (DEBUG) console.error("[catalog-debug]", ...args);
+}
+
 export function createGenericSource(options = {}) {
   const source = {
     name: options.name || "Generic source",
@@ -9,9 +15,16 @@ export function createGenericSource(options = {}) {
     maxNavigationDepth: options.maxNavigationDepth || 3,
 
     async search(query) {
+      debug("query:", query);
       for (const template of source.searchTemplates) {
+        const url = expandTemplate(template, query);
+        debug("template:", template, "=>", url);
         const page = await tryFetch(template, query);
-        if (page) return [page];
+        if (page) {
+          debug("page found:", page.url, "title:", page.title, "html:", page.html.length);
+          return [page];
+        }
+        debug("template failed:", url);
       }
 
       if (!source.baseUrl) return [];
@@ -63,13 +76,17 @@ export async function navigateToGame(page, game, maxDepth = 3) {
   let current = page;
 
   for (let depth = 0; depth < maxDepth; depth++) {
-    if (/\bCUSA\d{5}\b/i.test(current.text || "")) return current;
+    if (/\bCUSA\d{5}\b/i.test(current.text || "")) {
+      debug("CUSA found at depth", depth, current.url);
+      return current;
+    }
 
     const links = extractLinks(current.html || "", current.url)
       .map(link => ({ ...link, score: scoreLink(link, game) }))
       .filter(link => link.score > 0)
       .sort((a, b) => b.score - a.score);
 
+    debug("depth", depth, "candidate links:", links.slice(0, 5).map(link => ({ text: link.text, href: link.href, score: link.score })));
     if (!links.length) return null;
 
     let next = null;
@@ -83,7 +100,11 @@ export async function navigateToGame(page, game, maxDepth = 3) {
       } catch {}
     }
 
-    if (!next) return null;
+    if (!next) {
+      debug("no candidate page fetched at depth", depth);
+      return null;
+    }
+    debug("following:", next.url, "title:", next.title);
     current = next;
   }
 
@@ -116,9 +137,11 @@ function isListing(page) {
 }
 
 async function tryFetch(template, query) {
+  const url = expandTemplate(template, query);
   try {
-    return await fetchPage(expandTemplate(template, query));
-  } catch {
+    return await fetchPage(url);
+  } catch (error) {
+    debug("fetch error:", url, error?.message || String(error));
     return null;
   }
 }
