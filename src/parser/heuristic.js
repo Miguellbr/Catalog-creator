@@ -46,14 +46,16 @@ function parseBlock(block, baseUrl, position) {
     const label = (link.text + " " + link.title).trim();
     const lower = label.toLowerCase();
 
-    if (/\bdlc\b|downloadable content/.test(lower)) {
+    if (/\bdlc\b|downloadable content/.test(lower) && !isNavigationLabel(lower)) {
       dlc.push(link);
-    } else if (/\bupdate\b|\bpatch\b|\bfix\b/.test(lower)) {
+    } else if (/\bupdate\b|\bpatch\b|\bfix\b/.test(lower) && !isNavigationLabel(lower)) {
       updates.push({ ...link, version: getVersion(label) || version });
-    } else if (/\bgame\b|\bfull game\b|\bbase game\b/.test(lower)) {
+    } else if (/^game$|^full game$|^base game$/.test(lower)) {
       game.push(link);
     }
   }
+
+  if (!version && !game.length && !updates.length && !dlc.length) return null;
 
   return {
     cusa: cusa.toUpperCase(),
@@ -135,6 +137,10 @@ function mergeLinks(left = [], right = []) {
   }
 
   return result;
+}
+
+function isNavigationLabel(label) {
+  return /\b(list all game|list game|category|archive|guide install|daily update|login)\b/i.test(label);
 }
 
 function normalizeRegion(value) {
