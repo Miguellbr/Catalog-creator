@@ -1,16 +1,18 @@
 import { extractLinks, clean } from "./html.js";
 
 const CUSA = /\bCUSA\d{5}\b/i;
-const VERSION = /(?:update\s*)?(?:v(?:ersion)?\s*)?(\d+(?:\.\d+){0,3})/i;
+const VERSION = /(?:\bupdate\s*|\bversion\s*|\bv)\s*(\d+(?:\.\d+){0,3})\b/i;
 const REGION = /(?:-|\(|\[|\s)(EUR|USA|US|JPN|JAP|ASIA|CHN|KOR|UK|RUS)(?:\b|\)|\])/i;
 
 export function parseGamePage(page) {
   const html = page?.html ?? "";
   const text = page?.text ?? clean(html);
   const blocks = splitBlocks(html);
-  const versions = blocks.length
+  const parsed = blocks.length
     ? blocks.map((block, i) => parseBlock(block, page.url, i)).filter(Boolean)
     : [parseLoose(html, text, page.url)].filter(Boolean);
+
+  const versions = mergeDuplicateEntries(parsed);
 
   if (!versions.length) return null;
 
@@ -94,6 +96,45 @@ function parseLoose(html, text, baseUrl) {
 function getVersion(value) {
   const m = String(value).match(VERSION);
   return m ? m[1] : null;
+}
+
+function mergeDuplicateEntries(entries) {
+  const merged = new Map();
+
+  for (const entry of entries) {
+    const key = entry.cusa || `unknown-${entry.sourcePosition}`;
+    const existing = merged.get(key);
+
+    if (!existing) {
+      merged.set(key, { ...entry });
+      continue;
+    }
+
+    if (!existing.region && entry.region) existing.region = entry.region;
+    existing.mirror ||= entry.mirror;
+    if (!existing.version && entry.version) existing.version = entry.version;
+
+    existing.game = mergeLinks(existing.game, entry.game);
+    existing.updates = mergeLinks(existing.updates, entry.updates);
+    existing.dlc = mergeLinks(existing.dlc, entry.dlc);
+  }
+
+  return [...merged.values()];
+}
+
+function mergeLinks(left = [], right = []) {
+  const result = [...left];
+  const seen = new Set(result.map(link => `${link.href}|${link.text}|${link.version || ""}`));
+
+  for (const link of right) {
+    const key = `${link.href}|${link.text}|${link.version || ""}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(link);
+    }
+  }
+
+  return result;
 }
 
 function normalizeRegion(value) {
