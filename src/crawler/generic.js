@@ -311,11 +311,22 @@ function isListing(page) {
 async function tryFetch(template, query) {
   const url = expandTemplate(template, query);
   try {
-    return await fetchPage(url);
+    const page = await fetchPage(url);
+    if (!isHtmlPage(page)) {
+      debug("rejected non-HTML:", url, page?.contentType || "unknown");
+      return null;
+    }
+    return page;
   } catch (error) {
     debug("fetch error:", url, error?.message || String(error));
     return null;
   }
+}
+
+function isHtmlPage(page) {
+  const contentType = String(page?.contentType || "").toLowerCase();
+  if (!contentType) return true;
+  return contentType.includes("text/html") || contentType.includes("application/xhtml+xml");
 }
 
 export function expandTemplate(template, game) {
