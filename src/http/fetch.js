@@ -20,16 +20,16 @@ export async function fetchPage(url, options = {}) {
 
 export function htmlToText(html = "") {
   return decodeEntities(String(html)
-    .replace(/<script[\\s\\S]*?<\\/script>/gi, " ")
-    .replace(/<style[\\s\\S]*?<\\/style>/gi, " ")
-    .replace(/<noscript[\\s\\S]*?<\\/noscript>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
     .replace(/<[^>]+>/g, " ")
-    .replace(/\\s+/g, " ").trim());
+    .replace(/\s+/g, " ").trim());
 }
 
 export function extractTitle(html = "") {
-  const match = String(html).match(/<title[^>]*>([\\s\\S]*?)<\\/title>/i);
-  return match ? decodeEntities(match[1]).replace(/\\s+/g, " ").trim() : "";
+  const match = String(html).match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  return match ? decodeEntities(match[1]).replace(/\s+/g, " ").trim() : "";
 }
 
 export function decodeEntities(value = "") {
