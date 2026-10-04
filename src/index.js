@@ -6,15 +6,10 @@ export async function buildCatalog({ source, queries = [] }) {
 
   for (const query of queries) {
     const results = await source.search(query);
-
     for (const result of results || []) {
-      const page = source.isIndexPage(result)
-        ? await source.findGamePage(result, query)
-        : result;
-
+      const page = source.isIndexPage(result) ? await source.findGamePage(result, query) : result;
       if (!page || seen.has(page.url)) continue;
       seen.add(page.url);
-
       const game = source.parseGamePage(page);
       if (game) games.push(normalizeGame(game));
     }
