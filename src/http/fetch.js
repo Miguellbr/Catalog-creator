@@ -12,15 +12,32 @@ export async function fetchPage(url, options = {}) {
   const html = await response.text();
 
   if (process.env.CATALOG_DEBUG === "1") {
-    const lower = html.toLowerCase();
     const markers = {
-      login: lower.includes("wp-login") || lower.includes("log in") || lower.includes("login"),
-      blocked: lower.includes("access denied") || lower.includes("forbidden") || lower.includes("cloudflare"),
-      gameTitle: lower.includes("god of war"),
-      cusa: /\\bCUSA\\d{5}\\b/i.test(html)
+      loginUrl: /wp-login\.php/i.test(response.url),
+      loginForm: /<form[^>]+(?:login|log-in)[^>]*>|<input[^>]+(?:name|id)=["'](?:log|user_login)["']/i.test(html),
+      accessDenied: /access denied/i.test(html),
+      forbidden: /\bforbidden\b/i.test(html),
+      cloudflare: /\bcloudflare\b/i.test(html),
+      challenge: /cf-chl-|challenge-platform|checking your browser|just a moment/i.test(html),
+      gameTitle: /god of war/i.test(html),
+      cusa: /\bCUSA\d{5}\b/i.test(html)
     };
-    console.error("[http-debug]", response.status, response.url, "bytes:", html.length, markers);
+
+    const blockedReasons = [];
+    if (markers.accessDenied) blockedReasons.push("access-denied");
+    if (markers.forbidden) blockedReasons.push("forbidden");
+    if (markers.challenge) blockedReasons.push("challenge");
+
+    console.error(
+      "[http-debug]",
+      response.status,
+      response.url,
+      "bytes:",
+      html.length,
+      { ...markers, blocked: blockedReasons.length > 0, blockedReasons }
+    );
   }
+
   return {
     url: response.url,
     html,
