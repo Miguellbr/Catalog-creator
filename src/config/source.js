@@ -10,11 +10,14 @@
  */
 export const sourceConfig = {
   name: "My Source",
-  baseUrl: "https://dlpsgame.com/tag/{GAME_SLUG}/",
+  baseUrl: "https://dlpsgame.com",
 
   // Example:
   // searchTemplates: ["https://example.com/tag/{GAME_SLUG}/"],
-  searchTemplates: [],
+  searchTemplates: [
+
+    https://dlpsgame.com/tag/{GAME_SLUG}/
+  ],
 
   maxNavigationDepth: 3
 };
